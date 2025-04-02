@@ -1,0 +1,3 @@
+[submodule "NX1Loader"]
+	path = NX1Loader
+	url = https://github.com/luna/NX1Loader

@@ -1,0 +1,10 @@
+title_name = "NX1"
+title_id = "4156089E"
+#media_id = "2C8C0267" # Disc (USA, Europe): http://redump.org/disc/37074
+
+[[plugin]]
+	author = "JTAG"
+	name = "Rawfile Loader"
+	file = "NX1Loader.xex"
+	hash = "CBFAA079004C987F" # 0-Convoy Test 1_5.mp.xex & 5-nx1mp_demo.xex
+	is_enabled = true
