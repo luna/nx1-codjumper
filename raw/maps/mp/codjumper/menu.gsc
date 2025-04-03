@@ -59,7 +59,7 @@ watch_buttons()
 {
 	self endon("end_respawn");
 	self endon("disconnect");
-	level endon("game_ended")
+	level endon("game_ended");
 
 	self registerCommand("+melee");
 	self registerCommand("+frag");
