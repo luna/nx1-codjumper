@@ -18,6 +18,12 @@ replenish_ammo()
 	}
 }
 
+reset_fov()
+{
+	if(isDefined(self.cj["settings"]["cg_fov"]))
+		self setClientDvar("cg_fov", self.cj["settings"]["cg_fov"]);
+}
+
 toggle_ufo()
 {
 	SESSION_STATES = strTok("playing;spectator", ";");
