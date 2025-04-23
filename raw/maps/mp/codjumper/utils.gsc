@@ -2,9 +2,6 @@
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;
 
-SCREEN_MAX_WIDTH = 640;
-SCREEN_MAX_HEIGHT = 480;
-
 blank(){}
 
 registerCommand(cmd)
@@ -141,4 +138,34 @@ get_themes()
 	themes["yellow"] = rgb(255, 255, 0);
 
 	return themes;
+}
+
+get_maps()
+{
+	maps = [];
+
+	maps["mp_nx_bom"] = "BOM";
+	maps["mp_nx_border"] = "Border";
+	maps["mp_nx_leg_crash"] = "Crash";
+	maps["mp_nx_deadzone"] = "DeadZone";
+	maps["mp_nx_fallout"] = "Fallout";
+	maps["mp_nx_galleria"] = "Galleria";
+	maps["mp_nx_ugvhh"] = "Hell in Paradise";
+	maps["mp_nx_import"] = "Import";
+	maps["mp_nx_leg_overgrown"] = "Overgrown";
+	maps["mp_nx_pitstop"] = "Pit Stop";
+	maps["mp_nx_contact"] = "Contact";
+	maps["mp_nx_meteor"] = "Meteor";
+	maps["mp_nx_monorail"] = "Monorail";
+	maps["mp_nx_lockdown_v2"] = "Lockdown";
+	maps["mp_nx_sandstorm"] = "Sandstorm";
+	maps["mp_nx_seaport"] = "Seaport";
+	maps["mp_nx_skylab"] = "Skylab";
+	maps["mp_nx_stasis"] = "Stasis";
+	maps["mp_nx_streets"] = "Streets";
+	maps["mp_nx_subyard"] = "Subyard";
+	maps["mp_nx_leg_term"] = "Terminal";
+	maps["mp_nx_whiteout"] = "Whiteout";
+
+	return maps;
 }

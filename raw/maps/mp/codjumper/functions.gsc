@@ -59,3 +59,8 @@ load_pos(i)
 	wait .05;
 	self freezeControls(false);
 }
+
+change_map(mapname)
+{
+	map(mapname);
+}

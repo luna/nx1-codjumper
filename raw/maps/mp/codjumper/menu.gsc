@@ -8,7 +8,7 @@ VERSION = "v0.15.0";
 
 SCREEN_MAX_WIDTH = 640;
 SCREEN_MAX_HEIGHT = 480;
-MENU_SCROLL_TIME_SECONDS = .25;
+MENU_SCROLL_TIME_SECONDS = 0.25;
 
 SELECTED_PREFIX = "^2-->^7 ";
 
@@ -16,6 +16,7 @@ init()
 {
 	level._callbackPlayerDamage = ::blank;
 
+	level.MAPS = get_maps();
 	level.THEMES = get_themes();
 	level.TOGGLES = strTok("OFF;ON", ";");
 
@@ -104,8 +105,10 @@ setup_player()
 	self setClientDvars("loc_warnings", 0, "loc_warningsAsErrors", 0, "cg_errordecay", 1, "con_errormessagetime", 0, "uiscript_debug", 0);
 	self setClientDvars("cg_overheadRankSize", 0, "cg_overheadIconSize", 0);
 	self setClientDvars("fx_enable", 0, "fx_marks", 0, "fx_marks_ents", 0, "fx_marks_smodels", 0);
+
 	self setClientDvar("cg_descriptiveText", 0);
 	self setClientDvar("ui_hud_hardcore", 1);
+	self setClientDvar("cg_drawFPS", 0);
 }
 
 watch_buttons()
@@ -184,8 +187,8 @@ add_menu_option(menuKey, label, func, param1, param2, param3)
 
 	opt.inputs = [];
 	opt.inputs[0] = param1;
-	opt.inputs[2] = param2;
-	opt.inputs[1] = param3;
+	opt.inputs[1] = param2;
+	opt.inputs[2] = param3;
 
 	self.menuOptions[menuKey].options[self.menuOptions[menuKey].options.size] = opt;
 }
@@ -279,8 +282,6 @@ menu_action(action, param1)
 			opt = menu.options[cursor];
 			self [[opt.func]](opt.inputs[0], opt.inputs[1], opt.inputs[2]);
 
-			wait .1;
-
 			break;
 		case "CLOSE":
 			self.menuBackground destroy();
@@ -346,9 +347,23 @@ menu_action(action, param1)
 
 generate_menu_options()
 {
-	isHost = self getEntityNumber() == 0;
-
 	self add_menu("main");
-	for(i = 0;i < 15;i++)
-		self add_menu_option("main", "Option " + i, ::blank);
+	self add_menu_option("main", "DVAR menu", ::blank);
+
+	if(self isHost())
+	{
+		if(getDvarInt("ui_allow_teamchange") == 1)
+		{
+			self add_menu_option("main", "Select Map", ::menu_action, "CHANGE_MENU", "host_menu_maps");
+			self add_menu("host_menu_maps", "main");
+
+			maps = getArrayKeys(level.MAPS);
+			for (i = 0; i < maps.size; i++)
+			{
+				mapname = maps[i];
+				label = level.MAPS[mapname];
+				self add_menu_option("host_menu_maps", label, ::change_map, mapname);
+			}
+		}
+	}
 }
