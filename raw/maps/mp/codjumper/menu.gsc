@@ -17,6 +17,7 @@ init()
 	level._callbackPlayerDamage = ::blank;
 
 	level.MAPS = get_maps();
+	level.DVARS = get_dvars();
 	level.THEMES = get_themes();
 	level.TOGGLES = strTok("OFF;ON", ";");
 
@@ -94,6 +95,8 @@ setup_player()
 
 	self.cj["dvars"] = [];
 
+	self.usingSlider = false;
+
 	// Default loadout
 	self.cj["loadout"] = spawnstruct();
 	self.cj["loadout"].primary = "ump45_mp";
@@ -115,15 +118,16 @@ watch_buttons()
 {
 	self endon("end_respawn");
 	self endon("disconnect");
+
 	level endon("game_ended");
 
-	self registerCommand("+melee");
-	self registerCommand("+frag");
-	self registerCommand("+smoke");
-	self registerCommand("+usereload");
-	self registerCommand("+actionslot 1");
-	self registerCommand("+attack");
-	self registerCommand("+speed_throw");
+	self register_command("+melee");
+	self register_command("+frag");
+	self register_command("+smoke");
+	self register_command("+usereload");
+	self register_command("+actionslot 1");
+	self register_command("+attack");
+	self register_command("+speed_throw");
 
 	for(;;)
 	{
@@ -164,6 +168,9 @@ watch_buttons()
 
 				break;
 		}
+
+		while(self.usingSlider)
+			wait .125;
 	}
 }
 
@@ -240,6 +247,121 @@ init_menu_hud()
 	self.menuHeaderAuthorFontElem.glowColor = self.themeColor;
 
 	self.menuVersionFontElem = self text(VERSION, (SCREEN_MAX_WIDTH - menuWidth) + leftPad, int(SCREEN_MAX_HEIGHT - (level._fontHeight * 1.4) - leftPad), "default", 1.4, 0.5, 2, "TOP LEFT", "fullscreen");
+}
+
+slider_start(dvar)
+{
+	self endon("disconnect");
+	self endon("end_respawn");
+
+	if(!is_dvar_struct_valid(dvar) || dvar.type != "slider")
+	{
+		self iPrintln("^1dvar struct is invalid");
+		return;
+	}
+
+	if(!isDefined(self.cj["slider_hud"]))
+		self.cj["slider_hud"] = [];
+	else
+		self slider_hud_destroy();
+
+	backgroundWidth = SCREEN_MAX_WIDTH;
+	backgroundHeight = 50;
+	centerYPosition = (SCREEN_MAX_HEIGHT - backgroundHeight) / 2;
+
+	self.cj["slider_hud"]["background"] = self shader("white", 0, centerYPosition, backgroundWidth, backgroundHeight, (0,0,0), 0.5, 4, "TOP LEFT", "fullscreen");
+
+	railWidth = int(SCREEN_MAX_WIDTH * 0.75);
+	railHeight = 4;
+	centerXPosition = (SCREEN_MAX_WIDTH - railWidth) / 2;
+	centerYPosition = (SCREEN_MAX_HEIGHT - railHeight) / 2;
+
+	self.cj["slider_hud"]["rail"] = self shader("white", centerXPosition, centerYPosition, railWidth, railHeight, undefined, 0.75, 5, "TOP LEFT", "fullscreen");
+
+	cursorWidth = 3;
+	cursorHeight = int(backgroundHeight / 2);
+	cursorStartXPosition = centerXPosition;
+	cursorYPosition = centerYPosition - (cursorHeight - railHeight) / 2;
+
+	self.cj["slider_hud"]["cursor"] = self shader("white", cursorStartXPosition, cursorYPosition, cursorWidth, cursorHeight, self.themeColor, 1, 6, "TOP LEFT", "fullscreen");
+
+	dvarValue = self get_saved_client_dvar(dvar.name, dvar.default_value);
+
+	update_cursor_position(dvar, dvarValue, self.cj["slider_hud"]["cursor"], centerXPosition, railWidth, cursorWidth);
+
+	self.cj["slider_hud"]["cursor"].alpha = 1;
+
+	self.cj["slider_hud"]["value"] = self text("", 0, -50, "default", 3, 1, 4, "CENTER", "CENTER");
+	self.cj["slider_hud"]["value"] SetValue(dvarValue);
+
+	instructions = [];
+	instructions[instructions.size] = "[{+smoke}] Decrease";
+	instructions[instructions.size] = "[{+frag}] Increase";
+	instructions[instructions.size] = "[{+melee}] Save and exit";
+
+	instructionsString = "";
+	foreach(instruction in instructions)
+		instructionsString += instruction + "\n";
+
+	self.cj["slider_hud"]["instructions"] = createFontString("default", 1.4);
+	self.cj["slider_hud"]["instructions"] setPoint("TOPLEFT", "TOPLEFT", -30, -20);
+	self.cj["slider_hud"]["instructions"] setText(instructionsString);
+
+	self.usingSlider = true;
+
+	for(;;)
+	{
+		if(self fragButtonPressed() || self secondaryOffhandButtonPressed())
+		{
+			if (self fragbuttonpressed())
+			{
+				dvarValue += dvar.step;
+				if (dvarValue > dvar.max)
+					dvarValue = dvar.min; // Wrap around to min
+			}
+			else if (self secondaryoffhandbuttonpressed())
+			{
+				dvarValue -= dvar.step;
+				if (dvarValue < dvar.min)
+					dvarValue = dvar.max; // Wrap around to max
+			}
+
+			update_cursor_position(dvar, dvarValue, self.cj["slider_hud"]["cursor"], centerXPosition, railWidth, cursorWidth);
+			self.cj["slider_hud"]["value"] SetValue(dvarValue);
+			self set_saved_client_dvar(dvar.name, dvarValue);
+
+			wait .05;
+		}
+		else if(self meleeButtonPressed())
+		{
+			self set_saved_client_dvar(dvar.name, dvarValue);
+			self slider_hud_destroy();
+
+			self.usingSlider = false;
+			return;
+		}
+
+		wait .05;
+	}
+}
+
+update_cursor_position(dvar, dvarValue, sliderCursor, centerXPosition, railWidth, cursorWidth)
+{
+	normalizedPosition = (dvarValue - dvar.min) / (dvar.max - dvar.min);
+	sliderCursor.x = centerXPosition + int(normalizedPosition * (railWidth - cursorWidth));
+}
+
+slider_hud_destroy()
+{
+	if (!isDefined(self.cj["slider_hud"]))
+		return;
+
+	keys = getArrayKeys(self.cj["slider_hud"]);
+	for (i = 0; i < keys.size; i++)
+	{
+		if (isDefined(self.cj["slider_hud"][keys[i]]))
+			self.cj["slider_hud"][keys[i]] destroy();
+	}
 }
 
 menu_action(action, param1)
@@ -348,7 +470,25 @@ menu_action(action, param1)
 generate_menu_options()
 {
 	self add_menu("main");
-	self add_menu_option("main", "DVAR menu", ::blank);
+
+	self add_menu_option("main", "DVAR menu", ::menu_action, "CHANGE_MENU", "dvar_menu");
+	self add_menu("dvar_menu", "main");
+	self add_menu_option("dvar_menu", "^1Reset All^7", ::reset_all_client_dvars);
+
+	dvars = getArrayKeys(level.DVARS);
+	for(i = 0;i < level.DVARS.size;i++)
+	{
+		dvar = level.DVARS[dvars[i]];
+
+		if(!self isHost() && isDefined(dvar.scope) && dvar.scope == "global")
+			continue;
+
+		if (dvar.type == "slider")
+			self add_menu_option("dvar_menu", dvar.name, ::slider_start, dvar);
+		else if (dvar.type == "boolean")
+			self add_menu_option("dvar_menu", dvar.name, ::toggle_boolean_dvar, dvar);
+	}
+
 
 	if(self isHost())
 	{

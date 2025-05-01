@@ -4,7 +4,7 @@
 
 blank(){}
 
-registerCommand(cmd)
+register_command(cmd)
 {
 	if(!isDefined(self.buttons))
 		self.buttons = [];
@@ -34,10 +34,7 @@ button_pressed_twice(command)
 
 	self waittill_notify_or_timeout(command, .5);
 
-	if((gettime() - pressed) >= 500)
-		return false;
-
-	return true;
+	return (gettime() - pressed) < 500;
 }
 
 waittill_button_press()
@@ -111,6 +108,83 @@ rgb(r, g, b)
 	return (r / 255, g / 255, b / 255);
 }
 
+get_saved_client_dvar(dvar, default_value)
+{
+	value = self.cj["dvars"][dvar];
+	if (!isDefined(value))
+		return default_value;
+	else
+		return value;
+}
+
+set_saved_client_dvar(dvar, value)
+{
+	self.cj["dvars"][dvar] = value;
+
+	global = false;
+	default_value = undefined;
+	if (isDefined(level.DVARS[dvar]))
+	{
+		dvar_struct = level.DVARS[dvar];
+		default_value = dvar_struct.default_value;
+
+		if(isDefined(dvar_struct.scope) && dvar_struct.scope == "global")
+		{
+			global = true;
+			setDvar(dvar, value);
+		}
+	}
+	
+	if(!global)
+		self setClientDvar(dvar, value);
+
+	msg = dvar + ": " + value;
+	if (value == default_value)
+		msg += " [DEFAULT]";
+
+	self iPrintln(msg);
+}
+
+is_dvar_struct_valid(dvar)
+{
+	// all require name/type/default value
+	if (!isDefined(dvar) || !isDefined(dvar.type) || !isDefined(dvar.name) || !isDefined(dvar.default_value))
+		return false;
+
+	if (dvar.type == "slider")
+	{
+		if (!isDefined(dvar.min) || !isDefined(dvar.max) || !isDefined(dvar.step))
+			return false;
+	}
+
+	return true;
+}
+
+toggle_boolean_dvar(dvar)
+{
+	if (!is_dvar_struct_valid(dvar) || dvar.type != "boolean")
+	{
+		self iPrintln("^1dvar struct is invalid");
+		return;
+	}
+
+	dvarValue = self get_saved_client_dvar(dvar.name, dvar.default_value);
+
+	if (dvarValue == 0)
+		self set_saved_client_dvar(dvar.name, 1);
+	else
+		self set_saved_client_dvar(dvar.name, 0);
+}
+
+reset_all_client_dvars()
+{
+	foreach(dvar in level.DVARS)
+	{
+		if(!isDefined(dvar.scope))
+			self set_saved_client_dvar(dvar.name, dvar.default_value);
+	}
+}
+
 get_themes()
 {
 	themes = [];
@@ -168,4 +242,49 @@ get_maps()
 	maps["mp_nx_whiteout"] = "Whiteout";
 
 	return maps;
+}
+
+get_dvars()
+{
+	dvars = [];
+
+	dvars["bg_viewBobMax"] = add_dvar("bg_viewBobMax", "slider", 8, 0, 36, 1);
+	dvars["cg_drawGun"] = add_dvar("cg_drawGun", "boolean", 1);
+	dvars["cg_drawSpectatorMessages"] = add_dvar("cg_drawSpectatorMessages", "boolean", 1);
+	dvars["cg_fov"] = add_dvar("cg_fov", "slider", 65, 65, 90, 1);
+	dvars["cg_fovScale"] = add_dvar("cg_fovScale", "slider", 1, 0.2, 2, 0.1);
+	dvars["cg_thirdPerson"] = add_dvar("cg_thirdPerson", "boolean", 0);
+	dvars["cg_thirdPersonAngle"] = add_dvar("cg_thirdPersonAngle", "slider", 356, -180, 360, 1);
+	dvars["cg_thirdPersonRange"] = add_dvar("cg_thirdPersonRange", "slider", 120, 0, 1024, 1);
+	dvars["jump_slowdownEnable"] = add_dvar("jump_slowdownEnable", "boolean", 1, undefined, undefined, undefined, "global");
+	dvars["r_blur"] = add_dvar("r_blur", "slider", 0, 0, 32, 0.2);
+	dvars["r_dof_enable"] = add_dvar("r_dof_enable", "boolean", 1);
+	dvars["r_fog"] = add_dvar("r_fog", "boolean", 1);
+	dvars["r_fullbright"] = add_dvar("r_fullbright", "boolean", 0);
+	dvars["r_zFar"] = add_dvar("r_zFar", "slider", 0, 0, 4000, 500);
+
+	return dvars;
+}
+
+add_dvar(name, type, default_value, min, max, step, scope)
+{
+	dvar = spawnstruct();
+
+	dvar.name = name;
+	dvar.type = type;
+	dvar.default_value = default_value;
+
+	if(isDefined(scope))
+		dvar.scope = scope;
+
+	if(type == "slider")
+	{
+		assert(isDefined(min) && isDefined(max) && isDefined(step));
+
+		dvar.min = min;
+		dvar.max = max;
+		dvar.step = step;
+	}
+
+	return dvar;
 }
